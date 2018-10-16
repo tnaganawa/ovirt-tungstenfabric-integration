@@ -20,9 +20,9 @@ default, 192.168.122.0/24, nat
 
 ## nodes
 ovirt-manager: centos161, 192.168.122.161 default  
-ovirt-node: centos162, 192.168.122.162, 192.168.130.162, default, 192_168.130_0  
-ovirt-node: centos163, 192.168.122.163, 192.168.130.163, default, 192_168.130_0  
-contrail-controller: centos164, 192.168.122.164, 192.168.130.164: default, 192_168.130_0
+ovirt-node: centos162, 192.168.122.162, 192.168.130.162, default, 192_168_130_0  
+ovirt-node: centos163, 192.168.122.163, 192.168.130.163, default, 192_168_130_0  
+contrail-controller: centos164, 192.168.122.164, 192.168.130.164: default, 192_168_130_0
 - 4vcpu, 8GB mem (24GB for contrail-controller), 48GB disk
 
 # oVirt setting
@@ -97,7 +97,7 @@ provider_config:
     ssh_pwd: root
     ssh_user: root
     domainsuffix: local
-    ntpserver: ntp.nict.jp
+    ntpserver: 0.centos.pool.ntp.org
 instances:
   bms1:
     provider: bms
@@ -149,7 +149,7 @@ PHYSICAL_INTERFACE, VROUTER_GATEWAY also need to be explicitly specified to make
 
 ## stop nova_compute, nova_libvirt 
 
-Since libvirt tcp port is used by vdsm, nova_libvirt has to be stopped.
+Since libvirt port is used by vdsm, nova_libvirt need to be stopped.
 ```
 # docker stop nova_compute nova_libvirt
 # docker rm nova_compute nova_libvirt
@@ -230,3 +230,65 @@ os.popen(cmd).read()
 ```
 
 
+```
+[root@centos163 ~]# ip -o a
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lftforever
+1: lo    inet6 ::1/128 scope host \       valid_lft forever preferred_lft forever
+21: ovirtmgmt    inet 192.168.122.163/24 brd 192.168.122.255 scope global ovirtmgmt\       valid_lft forever preferred_lft forever
+21: ovirtmgmt    inet6 fe80::5054:ff:fe7b:b7ac/64 scope link \       valid_lftforever preferred_lft forever
+25: vhost0    inet 192.168.130.163/24 brd 192.168.130.255 scope global vhost0\      valid_lft forever preferred_lft forever
+25: vhost0    inet6 fe80::5054:ff:fecf:54be/64 scope link \       valid_lft forever preferred_lft forever
+26: docker0    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0\      valid_lft forever preferred_lft forever
+27: genev_sys_6081    inet6 fe80::c8b:b5ff:fe21:bbed/64 scope link \       valid_lft forever preferred_lft forever
+28: pkt0    inet6 fe80::f806:bcff:fe7d:fe28/64 scope link \       valid_lft forever preferred_lft forever
+30: tapec01038d-44    inet6 fe80::fc1a:4aff:fe16:105/64 scope link \       valid_lft forever preferred_lft forever
+[root@centos163 ~]#
+[root@centos163 ~]# ip route
+default via 192.168.122.1 dev ovirtmgmt
+169.254.0.0/16 dev ovirtmgmt scope link metric 1021
+169.254.0.3 dev vhost0 proto 109 scope link
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1
+192.168.122.0/24 dev ovirtmgmt proto kernel scope link src 192.168.122.163
+192.168.130.0/24 dev vhost0 proto kernel scope link src 192.168.130.163
+[root@centos163 ~]#
+[root@centos163 ~]# ssh cirros@169.254.0.3
+The authenticity of host '169.254.0.3 (169.254.0.3)' can't be established.
+ECDSA key fingerprint is SHA256:HVJoTV0MGH9/T8bIw0aofzX7rCAphKDgts36YAXxpoo.
+ECDSA key fingerprint is MD5:03:55:f1:dd:53:ed:c9:87:62:fd:e6:3a:bb:59:aa:cc.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '169.254.0.3' (ECDSA) to the list of known hosts.
+cirros@169.254.0.3's password:
+$
+$ ip -o a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1\    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+1: lo    inet6 ::1/128 scope host \       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast qlen 1000\    link/ether 00:1a:4a:16:01:05 brd ff:ff:ff:ff:ff:ff
+2: eth0    inet 10.0.1.4/24 brd 10.0.1.255 scope global eth0\       valid_lft forever preferred_lft forever
+2: eth0    inet6 fe80::21a:4aff:fe16:105/64 scope link \       valid_lft forever preferred_lft forever
+$
+$ ping 10.0.1.3
+PING 10.0.1.3 (10.0.1.3): 56 data bytes
+64 bytes from 10.0.1.3: seq=0 ttl=64 time=2.855 ms
+64 bytes from 10.0.1.3: seq=1 ttl=64 time=1.852 ms
+^C
+--- 10.0.1.3 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 1.852/2.353/2.855 ms
+$
+$ ssh 10.0.1.3
+
+Host '10.0.1.3' is not in the trusted hosts file.
+(ecdsa-sha2-nistp521 fingerprint md5 5f:61:d0:f8:c3:c2:aa:8d:07:95:29:b4:52:aa:06:77)
+Do you want to continue connecting? (y/n) y
+cirros@10.0.1.3's password:
+$
+$ ip -o a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1\    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+1: lo    inet6 ::1/128 scope host \       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast qlen 1000\    link/ether 00:1a:4a:16:01:04 brd ff:ff:ff:ff:ff:ff
+2: eth0    inet 10.0.1.3/24 brd 10.0.1.255 scope global eth0\       valid_lft forever preferred_lft forever
+2: eth0    inet6 fe80::21a:4aff:fe16:104/64 scope link \       valid_lft forever preferred_lft forever
+$
+```
