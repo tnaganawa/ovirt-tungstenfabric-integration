@@ -202,9 +202,9 @@ vnic_id=os.environ['vnic_id']
 
 re = requests.get('http://{}:8082/virtual-machine-interface/{}'.format (tf_controller_ip, vnic_id))
 js = re.json()['virtual-machine-interface']
-mac_addr =  (js['virtual_machine_interface_mac_addresses']['mac_address'][0])
-vm_id = (js['virtual_machine_refs'][0]['to'][0])
-vn_id = (js['virtual_network_refs'][0]['uuid'])
+mac_addr =  js['virtual_machine_interface_mac_addresses']['mac_address'][0]
+vm_id = js['virtual_machine_refs'][0]['to'][0]
+vn_id = js['virtual_network_refs'][0]['uuid']
 
 cmd = "/var/lib/docker/volumes/opt_plugin/_data/bin/vrouter-port-control --oper=add --uuid={} --instance_uuid={} --vn_uuid={} --vm_name='' --ip_address='0.0.0.0' --ipv6_address=None --tap_name=tap{} --mac='{}' --rx_vlan_id=-1 --tx_vlan_id=-1".format(vnic_id, vm_id, vn_id, vnic_id[:11], mac_addr)
 
